@@ -24,12 +24,12 @@ const isIdInvalid = (i: number) => {
   return false;
 };
 
-const sum = f.pipe(
+f.pipe(
   await Bun.file(Bun.argv[2] || "./p2.txt").text(),
   (text) => text.split(","),
   f.map(splitFirstAndLast),
   generateIds,
   f.filter(isIdInvalid),
-  f.reduceLazy((acc, i) => acc + i, 0)
+  f.reduceLazy((acc, i) => acc + i, 0),
+  f.tap(console.log)
 );
-console.log(sum);
