@@ -45,36 +45,35 @@ function buildMap(text: string): GameState {
   };
 }
 
-const countAdjacentRolls = (grid: Grid, x: number, y: number): number =>
-  f.pipe(
-    adj(x, y),
-    f.filter((c) => grid.has(c)),
-    f.size
-  );
+const countAdjacent =
+  (grid: Grid) =>
+  (coord: string): number => {
+    const [x, y] = coord.split(",").map(Number);
+    return f.pipe(adj(x, y), f.filter(grid.has.bind(grid)), f.size);
+  };
 
-const isRollRemovable = (grid: Grid, x: number, y: number): boolean =>
-  countAdjacentRolls(grid, x, y) < 4;
+const isRemovable =
+  (state: GameState) =>
+  (coord: string): boolean =>
+    countAdjacent(state.grid)(coord) < 4;
 
-function performRemoval(state: GameState): { grid: Grid; removed: number } {
-  const coordsToRemove = f.pipe(
-    allCoords(state.w, state.h),
-    f.map(({ x, y }) => ({ x, y, coord: coordStr(x, y) })),
-    f.filter(({ coord }) => state.grid.has(coord)),
-    f.filter(({ x, y }) => isRollRemovable(state.grid, x, y)),
-    f.map(({ coord }) => coord),
-    f.toArray
-  );
-  const newGrid = new Set(
+const difference = <T>(a: Set<T>, b: Set<T>): Set<T> =>
+  new Set([...a].filter((x) => !b.has(x)));
+
+const performRemoval = (state: GameState): [Grid, number] => {
+  const toRemove = new Set(
     f.pipe(
-      state.grid,
-      f.filter((coord) => !coordsToRemove.includes(coord))
+      allCoords(state.w, state.h),
+      f.map(({ x, y }) => coordStr(x, y)),
+      f.filter((coord) => state.grid.has(coord)),
+      f.filter(isRemovable(state))
     )
   );
-  return { grid: newGrid, removed: coordsToRemove.length };
-}
+  return [difference(state.grid, toRemove), toRemove.size];
+};
 
 const removeUntilStable = (state: GameState): number => {
-  const { grid, removed } = performRemoval(state);
+  const [grid, removed] = performRemoval(state);
   return removed === 0 ? 0 : removed + removeUntilStable({ ...state, grid });
 };
 
