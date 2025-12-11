@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@flatten-js/core": "^1.6.8",
     "@fxts/core": "^1.21.1",
     "memoize": "^10.2.0",
     "remeda": "^2.32.0",
