@@ -22,7 +22,7 @@ const compileProblem = (line: string): Problem => {
   };
 };
 
-const applyButton = (current: State, b: Set<number>): Array<boolean> =>
+const applyButton = (current: State, b: Set<number>): State =>
   current.map((c, i) => (b.has(i) ? !c : c));
 
 const stringify = (a: State) => a.join(",");
@@ -41,8 +41,10 @@ const bfs = (p: Problem): number => {
     }
     p.buttons.forEach((b) => {
       const neighbor = applyButton(next.s, b);
-      if (!visited.has(stringify(neighbor))) {
+      const neighborStr = stringify(neighbor);
+      if (!visited.has(neighborStr)) {
         queue.push({ s: neighbor, d: next.d + 1 });
+        visited.add(neighborStr);
       }
     });
   }
