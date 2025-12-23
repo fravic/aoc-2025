@@ -16,11 +16,6 @@ type Input = {
   problems: Array<Problem>;
 };
 
-type Placement = {
-  empty: Array<boolean>; // TODO: Better way to represent this?
-  shapesLeft: Array<number>;
-};
-
 const parseInput = (lines: Array<string>): Input => {
   const shapes: Array<Shape> = R.range(0, NUM_SHAPES).map((_) => []);
 
@@ -38,7 +33,7 @@ const parseInput = (lines: Array<string>): Input => {
 
   const problems: Array<Problem> = [];
   for (let i = lineIdx; i < lines.length; i++) {
-    const lineRegex = /(\d+)x(\d+)\:((\s\d+)+)/g;
+    const lineRegex = /(\d+)x(\d+)\:\s((\d+\s?)+)/g;
     const lineRes = lineRegex.exec(lines[i])!;
     const shapeCounts = lineRes[3].split(" ").map(Number);
     problems.push({
@@ -51,29 +46,61 @@ const parseInput = (lines: Array<string>): Input => {
   return { shapes, problems };
 };
 
-const addShapesToPlacements = (
-  placements: Array<Placement>
-): Array<Placement> => {
-  // TODO: For each placement, try to add each shape. If a shape is added,
-  // remove that placement, and add the new placement to the queue for
-  // processing (so each returned placement is maximally greedy).
-  return placements;
+const calculateAreaForPair = (
+  count: number,
+  pairWidth: number,
+  pairHeight: number
+): number => {
+  if (count % 2 === 0) {
+    return (count / 2) * pairWidth * pairHeight;
+  }
+  // If there are an odd number, let's assume that the extra tile will take up its full area
+  return ((count - 1) / 2) * pairWidth * pairHeight + SHAPE_SIZE * SHAPE_SIZE;
 };
 
-const getPossiblePlacements = (p: Problem): Array<Placement> => {
-  if (p.w < SHAPE_SIZE || p.h < SHAPE_SIZE) {
-    // No shape will fit
-    return [{ empty: Array(p.w * p.h).fill(true), shapesLeft: p.shapeCounts }];
+const getDimensionsOfPair = (shapeIdx: number): [number, number] => {
+  switch (shapeIdx) {
+    case 0:
+      // Shape 0
+      // Two of them fit into a 4x5 grid, but the bottom row can be tiled into another row, so consider it 4x4
+      return [4, 4];
+    case 1:
+      // Shape 1
+      // Two of them fill a 3x5, with a space in the middle
+      return [3, 5];
+    case 2:
+      // Shape 2
+      // Two of them fit into a 4x5, but the right row can be tiled into another row, so consider it 4x4
+      return [4, 4];
+    case 3:
+      // Shape 3
+      // Two of them fit into a 4x4
+      return [4, 4];
+    case 4:
+      // Shape 4
+      // Two of them fit into a 4x3
+      return [4, 3];
+    case 5:
+      // Shape 5
+      // Two of them fit into a 4x3
+      return [4, 3];
+    default:
+      throw new Error("Unknown shape");
   }
-  return addShapesToPlacements([
-    ...getPossiblePlacements({ ...p, w: p.w - 1 }),
-    ...getPossiblePlacements({ ...p, h: p.h - 1 }),
-  ]);
+};
+
+const areaForShapeCount = (p: Problem, shapeIdx: number, count: number) => {
+  const [pairWidth, pairHeight] = getDimensionsOfPair(shapeIdx);
+  return calculateAreaForPair(count, pairWidth, pairHeight);
 };
 
 const isProblemSolvable = (p: Problem): boolean => {
-  const placements = getPossiblePlacements(p);
-  return placements.some((pl) => pl.shapesLeft.every((c) => c === 0));
+  const totalArea = R.reduce(
+    p.shapeCounts.entries().toArray(),
+    (total, [i, count]) => total + areaForShapeCount(p, i, count),
+    0
+  );
+  return totalArea <= p.w * p.h;
 };
 
 const countSolvableProblems = (p: Input) =>
